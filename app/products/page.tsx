@@ -5,7 +5,9 @@ import { Archive, ChevronDown, Edit3, Plus, Search, SlidersHorizontal, Trash2 } 
 import { PageTitle } from "@/components/app-shell";
 import { formatCurrency, products as initialProducts, type Product } from "@/lib/data";
 
-const allCategories = ["Todas", "Bebidas", "Lanches", "Doces"];
+const defaultCategories = ["Bebidas", "Lanches", "Doces"];
+
+const normalizeCategoryName = (value: string) => value.trim().replace(/\s+/g, " ");
 
 export default function ProductsPage() {
   const [inventory, setInventory] = useState<Product[]>(initialProducts);
@@ -13,9 +15,14 @@ export default function ProductsPage() {
   const [category, setCategory] = useState("Todas");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set([...defaultCategories, ...inventory.map((product) => product.category)]));
+    return ["Todas", ...uniqueCategories];
+  }, [inventory]);
   const [draft, setDraft] = useState({
     name: "",
-    category: "Bebidas",
+    category: defaultCategories[0],
     price: "",
     stock: "",
   });
@@ -32,7 +39,7 @@ export default function ProductsPage() {
 
   const openCreateForm = () => {
     setEditingId(null);
-    setDraft({ name: "", category: "Bebidas", price: "", stock: "" });
+    setDraft({ name: "", category: categories[1] ?? defaultCategories[0], price: "", stock: "" });
     setShowForm(true);
   };
 
@@ -50,18 +57,30 @@ export default function ProductsPage() {
   const closeForm = () => {
     setShowForm(false);
     setEditingId(null);
-    setDraft({ name: "", category: "Bebidas", price: "", stock: "" });
+    setNewCategoryName("");
+    setDraft({ name: "", category: categories[1] ?? defaultCategories[0], price: "", stock: "" });
+  };
+
+  const handleAddCategory = () => {
+    const nextCategory = normalizeCategoryName(newCategoryName);
+    if (!nextCategory) return;
+
+    setNewCategoryName("");
+    setDraft((current) => ({ ...current, category: nextCategory }));
   };
 
   const handleSaveProduct = () => {
     const name = draft.name.trim();
     const price = Number(draft.price);
     const stock = Number(draft.stock);
+    const finalCategory = normalizeCategoryName(draft.category) || defaultCategories[0];
 
     if (!name || Number.isNaN(price) || Number.isNaN(stock) || price <= 0 || stock < 0) {
       alert("Preencha nome, preço e estoque válidos.");
       return;
     }
+
+    setDraft((current) => ({ ...current, category: finalCategory }));
 
     if (editingId) {
       setInventory((current) =>
@@ -70,7 +89,7 @@ export default function ProductsPage() {
             ? {
                 ...product,
                 name,
-                category: draft.category,
+                category: finalCategory,
                 price,
                 stock,
               }
@@ -82,7 +101,7 @@ export default function ProductsPage() {
         id: `p${Date.now()}`,
         sku: `NOV-${String(Date.now()).slice(-5)}`,
         name,
-        category: draft.category,
+        category: finalCategory,
         price,
         stock,
         accent: ["#f8d7a8", "#f4b183", "#ffd166", "#a8dadc", "#c99a73", "#f7c873"][Math.floor(Math.random() * 6)],
@@ -139,7 +158,7 @@ export default function ProductsPage() {
               onChange={(e) => setCategory(e.target.value)}
               className="h-full appearance-none rounded-xl border border-[#e4e8df] bg-white py-3 pl-3 pr-9 text-xs font-semibold outline-none"
             >
-              {allCategories.map((option) => (
+              {categories.map((option) => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
@@ -283,11 +302,32 @@ export default function ProductsPage() {
                     onChange={(e) => setDraft((current) => ({ ...current, category: e.target.value }))}
                     className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-[var(--brand-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--brand-accent)]/10"
                   >
-                    {allCategories.filter((categoryOption) => categoryOption !== "Todas").map((categoryOption) => (
+                    {categories.filter((categoryOption) => categoryOption !== "Todas").map((categoryOption) => (
                       <option key={categoryOption} value={categoryOption}>{categoryOption}</option>
                     ))}
                   </select>
                 </label>
+
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Nova categoria
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Ex: Sorvetes"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-[var(--brand-accent)]/10"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCategory}
+                        className="rounded-xl bg-[var(--brand-primary)] px-3 py-2.5 text-sm font-semibold text-white hover:brightness-110"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </label>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <label className="block text-sm font-medium text-slate-700">
