@@ -116,18 +116,33 @@ export const predefinedUsers: UserProfile[] = [
   },
 ];
 
-export function applyTheme(theme: ThemeConfig) {
+export function normalizeTheme(theme?: Partial<ThemeConfig> | ThemeConfig | null): ThemeConfig {
+  const resolved = theme ?? defaultThemes.green;
+  return {
+    businessName: resolved.businessName || defaultThemes.green.businessName,
+    primary: resolved.primary || defaultThemes.green.primary,
+    secondary: resolved.secondary || defaultThemes.green.secondary,
+    accent: resolved.accent || defaultThemes.green.accent,
+    background: resolved.background || defaultThemes.green.background,
+    sidebar: resolved.sidebar || defaultThemes.green.sidebar,
+    text: resolved.text || defaultThemes.green.text,
+    card: resolved.card || defaultThemes.green.card,
+  };
+}
+
+export function applyTheme(theme?: Partial<ThemeConfig> | ThemeConfig | null) {
   if (typeof document === "undefined") return;
 
+  const safeTheme = normalizeTheme(theme ?? defaultThemes.green);
   const root = document.documentElement;
-  root.style.setProperty("--brand-primary", theme.primary);
-  root.style.setProperty("--brand-secondary", theme.secondary);
-  root.style.setProperty("--brand-accent", theme.accent);
-  root.style.setProperty("--brand-bg", theme.background);
-  root.style.setProperty("--brand-sidebar", theme.sidebar);
-  root.style.setProperty("--brand-text", theme.text);
-  root.style.setProperty("--brand-card", theme.card);
-  root.style.setProperty("--brand-business-name", theme.businessName);
+  root.style.setProperty("--brand-primary", safeTheme.primary);
+  root.style.setProperty("--brand-secondary", safeTheme.secondary);
+  root.style.setProperty("--brand-accent", safeTheme.accent);
+  root.style.setProperty("--brand-bg", safeTheme.background);
+  root.style.setProperty("--brand-sidebar", safeTheme.sidebar);
+  root.style.setProperty("--brand-text", safeTheme.text);
+  root.style.setProperty("--brand-card", safeTheme.card);
+  root.style.setProperty("--brand-business-name", safeTheme.businessName);
 }
 
 export function getInitialTheme(theme?: ThemeConfig) {

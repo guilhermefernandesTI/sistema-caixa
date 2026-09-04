@@ -45,10 +45,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen grid place-items-center bg-[#f7f8f3] text-ink">Sessão expirada. Redirecionando para login...</div>;
   }
 
-  const businessName = user.theme.businessName || "GF Venda Fácil";
-  const businessNameParts = businessName.trim().split(/\s+/).filter(Boolean);
-  const brandMain = businessNameParts[0] || "caixa";
+  const businessName = user.theme?.businessName || "GF Venda Fácil";
+  const businessNameParts = (businessName || "GF Venda Fácil").trim().split(/\s+/).filter(Boolean);
+  const brandMain = businessNameParts[0] || "GF";
   const brandSecondary = businessNameParts.length > 1 ? businessNameParts.slice(1).join(" ") : "";
+  const firstName = user.displayName?.trim() ? user.displayName.split(/\s+/)[0] : "Usuário";
+  const profileInitials = (user.displayName || "Usuário")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "GF";
   const visibleNav = user.role === "admin"
     ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }]
     : nav.filter((item) => item.href !== "/settings");
@@ -87,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-[var(--brand-accent)] text-sm font-bold text-[var(--brand-sidebar)]">{user.displayName.slice(0, 2).toUpperCase()}</div>
+            <div className="grid h-9 w-9 place-items-center rounded-full bg-[var(--brand-accent)] text-sm font-bold text-[var(--brand-sidebar)]">{profileInitials}</div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{user.displayName}</p>
               <p className="text-xs text-white/45">{user.role === "admin" ? "Administrador" : "Cliente"}</p>
@@ -108,7 +117,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button className="rounded-xl border border-[#dfe5db] bg-white p-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Abrir menu"><Menu size={20} /></button>
           <div className="hidden lg:block">
             <p className="text-xs font-medium text-[#58615a]">Sexta-feira, 04 de setembro de 2026</p>
-            <p className="text-sm font-semibold">Bom dia, {user.displayName.split(" ")[0]} <span aria-hidden="true">👋</span></p>
+            <p className="text-sm font-semibold">Bom dia, {firstName} <span aria-hidden="true">👋</span></p>
           </div>
           <div className="ml-auto flex items-center gap-3">
             {pathname !== "/login" && pathname !== "/" && (
@@ -126,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="grid h-9 w-9 place-items-center rounded-full bg-[var(--brand-accent)] text-xs font-bold text-[var(--brand-sidebar)] ring-2 ring-white"
                 aria-label="Abrir menu do perfil"
               >
-                {user.displayName.slice(0, 2).toUpperCase()}
+                {profileInitials}
               </button>
 
               {profileMenuOpen && (

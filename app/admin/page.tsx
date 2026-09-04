@@ -57,17 +57,22 @@ export default function AdminPage() {
   const selectedUser = users.find((entry) => entry.id === selectedUserId) ?? user ?? null;
 
   useEffect(() => {
-    if (selectedUser) {
-      setEditForm({
-        username: selectedUser.username,
-        displayName: selectedUser.displayName,
-        password: "",
-        role: selectedUser.role,
-      });
-      if (selectedUser.theme) {
-        setTheme(selectedUser.theme);
-      }
-    }
+    if (!selectedUser) return;
+
+    setEditForm({
+      username: selectedUser.username || "",
+      displayName: selectedUser.displayName || "",
+      password: "",
+      role: selectedUser.role || "client",
+    });
+
+    const nextTheme = {
+      ...defaultThemes.green,
+      ...selectedUser.theme,
+      businessName: (selectedUser.theme?.businessName || defaultThemes.green.businessName).trim() || defaultThemes.green.businessName,
+    };
+
+    setTheme(nextTheme);
   }, [selectedUser]);
 
   const handleSelectUser = (entry: UserProfile) => {

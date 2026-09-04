@@ -31,8 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         const currentUser = data.user as UserProfile | undefined;
         if (currentUser) {
-          setUser(currentUser);
-          applyTheme(currentUser.theme);
+          const nextUser: UserProfile = {
+            ...currentUser,
+            displayName: currentUser.displayName || "Usuário",
+            role: currentUser.role || "client",
+            theme: currentUser.theme ?? defaultThemes.green,
+          };
+          setUser(nextUser);
+          applyTheme(nextUser.theme);
         } else {
           setUser(null);
         }
@@ -51,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isReady) return;
       return;
     }
-    applyTheme(user.theme);
+    applyTheme(user.theme ?? defaultThemes.green);
   }, [user, isReady]);
 
   const signIn = async (username: string, password: string) => {
@@ -68,7 +74,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, message: data.error || "Usuário ou senha inválidos." };
       }
 
-      const nextUser = data.user as UserProfile;
+      const userFromApi = data.user as Partial<UserProfile> | undefined;
+      const nextUser: UserProfile = {
+        id: userFromApi?.id,
+        username: userFromApi?.username || "",
+        displayName: userFromApi?.displayName || "Usuário",
+        role: userFromApi?.role || "client",
+        theme: userFromApi?.theme ?? defaultThemes.green,
+      };
       setUser(nextUser);
       applyTheme(nextUser.theme as ThemeConfig);
       return { success: true, message: "Login realizado com sucesso.", user: nextUser };
@@ -95,9 +108,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const data = await response.json();
-    const nextUser = data.user as UserProfile;
+    const nextUser = {
+      ...(data.user as UserProfile),
+      displayName: (data.user as UserProfile)?.displayName || "Usuário",
+      role: (data.user as UserProfile)?.role || "client",
+      theme: (data.user as UserProfile)?.theme ?? defaultThemes.green,
+    } as UserProfile;
     setUser(nextUser);
-    applyTheme(nextUser.theme);
+    applyTheme(nextUser.theme ?? defaultThemes.green);
   };
 
   const value = useMemo<AuthContextValue>(
