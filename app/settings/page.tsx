@@ -1,38 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Palette, Save, SlidersHorizontal } from "lucide-react";
 import { PageTitle } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
-import { defaultThemes } from "@/lib/theme";
+import { defaultThemes, type ThemeConfig } from "@/lib/theme";
+
+const presets = [
+  { label: "Verde padrão", theme: defaultThemes.green },
+  { label: "Azul Júlia", theme: defaultThemes.blue },
+  { label: "Vermelho Rosa", theme: defaultThemes.red },
+];
 
 export default function SettingsPage() {
   const { user, updateTheme } = useAuth();
-  const [theme, setTheme] = useState(user?.theme ?? defaultThemes.green);
+  const [theme, setTheme] = useState<ThemeConfig>(user?.theme ?? defaultThemes.green);
   const [saved, setSaved] = useState(false);
 
-  const handleChange = (key: keyof typeof theme, value: string) => {
+  useEffect(() => {
+    if (user) {
+      setTheme(user.theme);
+    }
+  }, [user]);
+
+  const handleChange = (key: keyof ThemeConfig, value: string) => {
     setTheme((current) => ({ ...current, [key]: value }));
   };
 
-  const handleSave = () => {
-    updateTheme(theme);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+  const handleSave = async () => {
+    try {
+      await updateTheme(theme);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    } catch {
+      setSaved(false);
+    }
   };
-
-  const presets = [
-    { label: "Verde padrão", theme: defaultThemes.green },
-    { label: "Azul Júlia", theme: defaultThemes.blue },
-    { label: "Vermelho Rosa", theme: defaultThemes.red },
-  ];
 
   return (
     <>
       <PageTitle
         eyebrow="Configuração"
         title="Personalização do sistema"
-        description="Defina o nome do estabelecimento, as cores da marca e a identidade visual que cada cliente vai enxergar ao entrar no caixa."
+        description="Defina o nome do estabelecimento, as cores da marca e a identidade visual que este usuário vai enxergar no caixa."
         action={<button onClick={handleSave} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 py-3 text-sm font-semibold text-white"><Save size={16} />Salvar visual</button>}
       />
 
@@ -101,7 +111,7 @@ export default function SettingsPage() {
               {presets.map((preset) => (
                 <button
                   key={preset.label}
-                  onClick={() => setTheme(preset.theme)}
+                  onClick={() => setTheme((current) => ({ ...preset.theme, businessName: current.businessName }))}
                   className="rounded-xl border border-[#e4e8df] bg-white px-3 py-2 text-xs font-semibold text-[#4b5652] transition hover:border-[var(--brand-accent)]"
                 >
                   {preset.label}
@@ -135,7 +145,7 @@ export default function SettingsPage() {
 
           {saved && (
             <div className="mt-5 flex items-center gap-2 rounded-xl border border-[#d7f7df] bg-[#eefaf0] px-3 py-2 text-sm font-medium text-[#1a7d3a]">
-              <Check size={16} /> Visual salva para {user?.displayName}
+              <Check size={16} /> Visual salvo para {user?.displayName}
             </div>
           )}
         </aside>

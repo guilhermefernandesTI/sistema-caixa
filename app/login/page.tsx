@@ -7,32 +7,31 @@ import { useAuth } from "@/components/auth-provider";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, user } = useAuth();
+  const { signIn, user, isReady } = useAuth();
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("920025");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (user) {
+    if (isReady && user) {
       router.push("/");
     }
-  }, [user, router]);
+  }, [isReady, user, router]);
 
-  if (user) {
+  if (!isReady || user) {
     return null;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = signIn(username, password);
-    if (result.success) {
-      setMessage(result.message);
-      router.push("/");
-      return;
-    }
-
+    const result = await signIn(username, password);
     setMessage(result.message);
+    if (result.success) {
+      const targetRoute = result.user?.role === "admin" ? "/admin" : "/";
+      router.replace(targetRoute);
+      router.refresh();
+    }
   };
 
   return (
@@ -91,7 +90,7 @@ export default function LoginPage() {
 
               {message && <p className="rounded-xl border border-[#f6d3c6] bg-[#fff8f4] px-3 py-2 text-xs font-medium text-[#a95c3f]">{message}</p>}
 
-              <button type="submit" className="w-full rounded-2xl bg-[var(--brand-primary)] py-3.5 text-sm font-bold text-white transition hover:opacity-95">
+              <button type="submit" className="w-full rounded-2xl bg-[#15231f] bg-[var(--brand-primary)] py-3.5 text-sm font-bold text-white transition hover:opacity-95">
                 Entrar
               </button>
             </form>

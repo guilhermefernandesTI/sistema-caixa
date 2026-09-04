@@ -10,10 +10,12 @@ export type ThemeConfig = {
 };
 
 export type UserProfile = {
+  id?: string;
   username: string;
-  password: string;
+  password?: string;
   displayName: string;
   role: "admin" | "client";
+  businessName?: string;
   theme: ThemeConfig;
 };
 
@@ -46,6 +48,46 @@ export const defaultThemes: Record<string, ThemeConfig> = {
     background: "#fff1f2",
     sidebar: "#431407",
     text: "#3f1d1b",
+    card: "#ffffff",
+  },
+  purple: {
+    businessName: "Luna Studio",
+    primary: "#2e1065",
+    secondary: "#ddd6fe",
+    accent: "#8b5cf6",
+    background: "#f5f3ff",
+    sidebar: "#2e1065",
+    text: "#2b2145",
+    card: "#ffffff",
+  },
+  gold: {
+    businessName: "Aurora Coffee",
+    primary: "#4a2d00",
+    secondary: "#fef3c7",
+    accent: "#f59e0b",
+    background: "#fffaf1",
+    sidebar: "#4a2d00",
+    text: "#3c2a14",
+    card: "#ffffff",
+  },
+  coral: {
+    businessName: "Sol e Mar",
+    primary: "#7c2d12",
+    secondary: "#fed7aa",
+    accent: "#f97316",
+    background: "#fff7ed",
+    sidebar: "#7c2d12",
+    text: "#3b241d",
+    card: "#ffffff",
+  },
+  dark: {
+    businessName: "Noir Lounge",
+    primary: "#111827",
+    secondary: "#d1d5db",
+    accent: "#facc15",
+    background: "#f3f4f6",
+    sidebar: "#111827",
+    text: "#111827",
     card: "#ffffff",
   },
 };

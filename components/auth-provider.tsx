@@ -1,88 +1,107 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { applyTheme, defaultThemes, predefinedUsers, type ThemeConfig, type UserProfile } from "@/lib/theme";
-
-const AUTH_KEY = "caixaflow-user";
+import { applyTheme, defaultThemes, type ThemeConfig, type UserProfile } from "@/lib/theme";
 
 type AuthContextValue = {
   user: UserProfile | null;
   isReady: boolean;
-  signIn: (username: string, password: string) => { success: boolean; message: string };
-  signOut: () => void;
-  updateTheme: (theme: ThemeConfig) => void;
+  signIn: (username: string, password: string) => Promise<{ success: boolean; message: string; user?: UserProfile }>;
+  signOut: () => Promise<void>;
+  updateTheme: (theme: ThemeConfig) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-function readStoredUser(): UserProfile | null {
-  if (typeof window === "undefined") return null;
-  const item = window.localStorage.getItem(AUTH_KEY);
-  if (!item) return null;
-
-  try {
-    const parsed = JSON.parse(item) as UserProfile;
-    if (!parsed?.username) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const saved = readStoredUser();
-    if (saved) {
-      setUser(saved);
-      applyTheme(saved.theme);
-    } else {
-      setUser(null);
-    }
-    setIsReady(true);
+    applyTheme(defaultThemes.green);
+
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+        if (!response.ok) {
+          setUser(null);
+          setIsReady(true);
+          return;
+        }
+        const data = await response.json();
+        const currentUser = data.user as UserProfile | undefined;
+        if (currentUser) {
+          setUser(currentUser);
+          applyTheme(currentUser.theme);
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    fetchCurrentUser();
   }, []);
 
   useEffect(() => {
-    if (!isReady) return;
-    if (user) {
-      window.localStorage.setItem(AUTH_KEY, JSON.stringify(user));
-      applyTheme(user.theme);
-    } else {
-      window.localStorage.removeItem(AUTH_KEY);
+    if (!isReady || !user) {
+      if (!isReady) return;
+      return;
     }
+    applyTheme(user.theme);
   }, [user, isReady]);
 
-  const signIn = (username: string, password: string) => {
-    const userFound = predefinedUsers.find((item) => item.username.toLowerCase() === username.toLowerCase() && item.password === password);
-    if (!userFound) {
-      return { success: false, message: "Usuário ou senha inválidos." };
-    }
+  const signIn = async (username: string, password: string) => {
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ username, password }),
+      });
 
-    setUser(userFound);
-    return { success: true, message: "Login realizado com sucesso." };
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, message: data.error || "Usuário ou senha inválidos." };
+      }
+
+      const nextUser = data.user as UserProfile;
+      setUser(nextUser);
+      applyTheme(nextUser.theme as ThemeConfig);
+      return { success: true, message: "Login realizado com sucesso.", user: nextUser };
+    } catch (error) {
+      return { success: false, message: "Não foi possível entrar no sistema." };
+    }
   };
 
-  const signOut = () => {
+  const signOut = async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
     setUser(null);
   };
 
-  const updateTheme = (theme: ThemeConfig) => {
-    setUser((current) => {
-      if (!current) return current;
-      return { ...current, theme };
+  const updateTheme = async (theme: ThemeConfig) => {
+    const response = await fetch("/api/auth/theme", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(theme),
     });
+
+    if (!response.ok) {
+      throw new Error("Não foi possível salvar a personalização.");
+    }
+
+    const data = await response.json();
+    const nextUser = data.user as UserProfile;
+    setUser(nextUser);
+    applyTheme(nextUser.theme);
   };
 
   const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      isReady,
-      signIn,
-      signOut,
-      updateTheme,
-    }),
+    () => ({ user, isReady, signIn, signOut, updateTheme }),
     [user, isReady],
   );
 
@@ -97,15 +116,6 @@ export function useAuth() {
   return context;
 }
 
-export function getLoggedUser() {
-  return readStoredUser();
-}
-
-export function getAvailableUsers() {
-  return predefinedUsers;
-}
-
 export function getThemeForUser(username: string) {
-  const user = predefinedUsers.find((item) => item.username.toLowerCase() === username.toLowerCase());
-  return user?.theme ?? defaultThemes.green;
+  return defaultThemes.green;
 }
