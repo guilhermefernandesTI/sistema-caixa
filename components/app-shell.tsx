@@ -33,6 +33,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [isReady, pathname, router, user]);
 
+  useEffect(() => {
+    if (pathname === "/settings" && user && user.role !== "admin") {
+      router.replace("/");
+    }
+  }, [pathname, router, user]);
+
   if (pathname === "/login") {
     return <>{children}</>;
   }
@@ -61,12 +67,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const visibleNav = user.role === "admin"
     ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }]
     : nav.filter((item) => item.href !== "/settings");
-
-  useEffect(() => {
-    if (pathname === "/settings" && user && user.role !== "admin") {
-      router.replace("/");
-    }
-  }, [pathname, router, user]);
 
   return (
     <div className="min-h-screen bg-[var(--brand-bg)] text-[var(--brand-text)]">
