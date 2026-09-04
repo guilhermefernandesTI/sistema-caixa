@@ -1,61 +1,38 @@
 import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
 import { defaultThemes, type ThemeConfig, type UserProfile } from "@/lib/theme";
 
-type MemoryUser = {
+function toUserProfile(user: {
   id: string;
   username: string;
   displayName: string;
-  role: "admin" | "client";
-  passwordHash: string;
-  theme: ThemeConfig;
-};
-
-type MemorySession = {
-  userId: string;
-  expiresAt: number;
-};
-
-const globalStore = globalThis as typeof globalThis & {
-  __caixaflow_users?: MemoryUser[];
-  __caixaflow_sessions?: Map<string, MemorySession>;
-};
-
-function ensureStore() {
-  if (!globalStore.__caixaflow_users) {
-    const seed = [
-      {
-        id: "admin-1",
-        username: "admin",
-        displayName: "Administrador",
-        role: "admin" as const,
-        passwordHash: bcrypt.hashSync("920025", 10),
-        theme: defaultThemes.green,
-      },
-      {
-        id: "client-rosa",
-        username: "rosa",
-        displayName: "Rosa",
-        role: "client" as const,
-        passwordHash: bcrypt.hashSync("123456", 10),
-        theme: defaultThemes.red,
-      },
-      {
-        id: "client-julia",
-        username: "julia",
-        displayName: "Júlia",
-        role: "client" as const,
-        passwordHash: bcrypt.hashSync("123456", 10),
-        theme: defaultThemes.blue,
-      },
-    ];
-    globalStore.__caixaflow_users = seed;
-  }
-
-  if (!globalStore.__caixaflow_sessions) {
-    globalStore.__caixaflow_sessions = new Map();
-  }
-
-  return globalStore;
+  role: string;
+  businessName: string | null;
+  themePrimary: string | null;
+  themeSecondary: string | null;
+  themeAccent: string | null;
+  themeBackground: string | null;
+  themeSidebar: string | null;
+  themeText: string | null;
+  themeCard: string | null;
+}): UserProfile {
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    role: (user.role === "admin" ? "admin" : "client") as "admin" | "client",
+    businessName: user.businessName || defaultThemes.green.businessName,
+    theme: normalizeTheme({
+      businessName: user.businessName || defaultThemes.green.businessName,
+      primary: user.themePrimary || defaultThemes.green.primary,
+      secondary: user.themeSecondary || defaultThemes.green.secondary,
+      accent: user.themeAccent || defaultThemes.green.accent,
+      background: user.themeBackground || defaultThemes.green.background,
+      sidebar: user.themeSidebar || defaultThemes.green.sidebar,
+      text: user.themeText || defaultThemes.green.text,
+      card: user.themeCard || defaultThemes.green.card,
+    }),
+  };
 }
 
 export function normalizeTheme(theme?: Partial<ThemeConfig> | null): ThemeConfig {
@@ -71,63 +48,109 @@ export function normalizeTheme(theme?: Partial<ThemeConfig> | null): ThemeConfig
   };
 }
 
-export function serializeUser(user: MemoryUser): UserProfile {
-  return {
-    id: user.id,
-    username: user.username,
-    displayName: user.displayName,
-    role: user.role,
-    businessName: user.theme.businessName,
-    theme: normalizeTheme(user.theme),
-  };
+export function serializeUser(user: {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+  businessName: string | null;
+  themePrimary: string | null;
+  themeSecondary: string | null;
+  themeAccent: string | null;
+  themeBackground: string | null;
+  themeSidebar: string | null;
+  themeText: string | null;
+  themeCard: string | null;
+}) {
+  return toUserProfile(user);
 }
 
-export function listUsers(): UserProfile[] {
-  const store = ensureStore();
-  return store.__caixaflow_users!.map((user) => serializeUser(user));
+async function ensureSeedUsers() {
+  const count = await prisma.user.count();
+  if (count > 0) return;
+
+  const seedUsers = [
+    { username: "admin", password: "920025", displayName: "Administrador", role: "admin", theme: defaultThemes.green },
+    { username: "rosa", password: "123456", displayName: "Rosa", role: "client", theme: defaultThemes.red },
+    { username: "julia", password: "123456", displayName: "Júlia", role: "client", theme: defaultThemes.blue },
+  ];
+
+  for (const candidate of seedUsers) {
+    await prisma.user.create({
+      data: {
+        tenantId: `${candidate.username}-${Date.now()}`,
+        username: candidate.username,
+        passwordHash: await bcrypt.hash(candidate.password, 10),
+        displayName: candidate.displayName,
+        role: candidate.role,
+        businessName: candidate.theme.businessName,
+        themePrimary: candidate.theme.primary,
+        themeSecondary: candidate.theme.secondary,
+        themeAccent: candidate.theme.accent,
+        themeBackground: candidate.theme.background,
+        themeSidebar: candidate.theme.sidebar,
+        themeText: candidate.theme.text,
+        themeCard: candidate.theme.card,
+      },
+    });
+  }
 }
 
-export function getUserById(id: string): UserProfile | null {
-  const user = ensureStore().__caixaflow_users!.find((entry) => entry.id === id);
-  return user ? serializeUser(user) : null;
+export async function listUsers(): Promise<UserProfile[]> {
+  await ensureSeedUsers();
+  const users = await prisma.user.findMany({ orderBy: { createdAt: "asc" } });
+  return users.map((user) => toUserProfile(user));
 }
 
-export function findUserByUsername(username: string): UserProfile | null {
-  const user = ensureStore().__caixaflow_users!.find((entry) => entry.username.toLowerCase() === username.toLowerCase());
-  return user ? serializeUser(user) : null;
+export async function getUserById(id: string): Promise<UserProfile | null> {
+  const user = await prisma.user.findUnique({ where: { id } });
+  return user ? toUserProfile(user) : null;
 }
 
-export function validatePassword(username: string, password: string) {
-  const candidate = ensureStore().__caixaflow_users!.find((entry) => entry.username.toLowerCase() === username.toLowerCase());
+export async function findUserByUsername(username: string): Promise<UserProfile | null> {
+  const user = await prisma.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+  });
+  return user ? toUserProfile(user) : null;
+}
+
+export async function validatePassword(username: string, password: string): Promise<UserProfile | null> {
+  await ensureSeedUsers();
+  const candidate = await prisma.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+  });
   if (!candidate) return null;
-  const valid = bcrypt.compareSync(password, candidate.passwordHash);
+
+  const valid = await bcrypt.compare(password, candidate.passwordHash);
   if (!valid) return null;
-  return serializeUser(candidate);
+
+  return toUserProfile(candidate);
 }
 
-export function createSession(token: string, userId: string) {
-  const store = ensureStore();
-  store.__caixaflow_sessions!.set(token, {
-    userId,
-    expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30,
+export async function createSession(token: string, userId: string) {
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
+  await prisma.session.create({
+    data: { token, userId, expiresAt },
   });
 }
 
-export function getSessionUser(token: string): UserProfile | null {
-  const store = ensureStore();
-  const session = store.__caixaflow_sessions!.get(token);
+export async function getSessionUser(token: string): Promise<UserProfile | null> {
+  const session = await prisma.session.findUnique({
+    where: { token },
+    include: { user: true },
+  });
+
   if (!session) return null;
-  if (session.expiresAt < Date.now()) {
-    store.__caixaflow_sessions!.delete(token);
+  if (session.expiresAt.getTime() < Date.now()) {
+    await prisma.session.delete({ where: { id: session.id } });
     return null;
   }
 
-  const user = store.__caixaflow_users!.find((entry) => entry.id === session.userId);
-  return user ? serializeUser(user) : null;
+  return toUserProfile(session.user);
 }
 
-export function destroySession(token: string) {
-  ensureStore().__caixaflow_sessions!.delete(token);
+export async function destroySession(token: string) {
+  await prisma.session.deleteMany({ where: { token } });
 }
 
 export async function createUser(payload: {
@@ -137,7 +160,8 @@ export async function createUser(payload: {
   role?: "admin" | "client";
   theme?: Partial<ThemeConfig>;
 }) {
-  const store = ensureStore();
+  await ensureSeedUsers();
+
   const username = String(payload.username ?? "").trim();
   const password = String(payload.password ?? "").trim();
   const role = payload.role === "admin" ? "admin" : "client";
@@ -146,80 +170,135 @@ export async function createUser(payload: {
     throw new Error("Usuário, nome e senha são obrigatórios.");
   }
 
-  if (store.__caixaflow_users!.some((user) => user.username.toLowerCase() === username.toLowerCase())) {
+  const existing = await prisma.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+  });
+
+  if (existing) {
     throw new Error("Este usuário já existe.");
   }
 
   const userTheme = normalizeTheme(payload.theme ?? defaultThemes.green);
-  const created: MemoryUser = {
-    id: `${role}-${Date.now()}`,
-    username,
-    displayName: String(payload.displayName ?? "").trim() || username,
-    role,
-    passwordHash: bcrypt.hashSync(password, 10),
-    theme: userTheme,
-  };
+  const created = await prisma.user.create({
+    data: {
+      tenantId: `${role}-${Date.now()}`,
+      username,
+      displayName: String(payload.displayName ?? "").trim() || username,
+      role,
+      passwordHash: await bcrypt.hash(password, 10),
+      businessName: userTheme.businessName,
+      themePrimary: userTheme.primary,
+      themeSecondary: userTheme.secondary,
+      themeAccent: userTheme.accent,
+      themeBackground: userTheme.background,
+      themeSidebar: userTheme.sidebar,
+      themeText: userTheme.text,
+      themeCard: userTheme.card,
+    },
+  });
 
-  store.__caixaflow_users!.push(created);
-  return serializeUser(created);
+  return toUserProfile(created);
 }
 
-export function deleteUserById(userId: string): UserProfile | null {
-  const store = ensureStore();
-  const match = store.__caixaflow_users!.find((entry) => entry.id === userId);
+export async function deleteUserById(userId: string): Promise<UserProfile | null> {
+  const match = await prisma.user.findUnique({ where: { id: userId } });
   if (!match) return null;
   if (match.username.toLowerCase() === "admin") {
     throw new Error("Não é possível excluir a conta administrativa principal.");
   }
 
-  const index = store.__caixaflow_users!.findIndex((entry) => entry.id === userId);
-  const [removed] = store.__caixaflow_users!.splice(index, 1);
-
-  store.__caixaflow_sessions!.forEach((session, token) => {
-    if (session.userId === userId) {
-      store.__caixaflow_sessions!.delete(token);
-    }
-  });
-
-  return serializeUser(removed);
+  const deleted = await prisma.user.delete({ where: { id: userId } });
+  return toUserProfile(deleted);
 }
 
-export function updateUserTheme(userId: string, theme: Partial<ThemeConfig>): UserProfile | null {
-  const store = ensureStore();
-  const match = store.__caixaflow_users!.find((entry) => entry.id === userId);
+export async function updateUserTheme(userId: string, theme: Partial<ThemeConfig>): Promise<UserProfile | null> {
+  const match = await prisma.user.findUnique({ where: { id: userId } });
   if (!match) return null;
 
-  match.theme = normalizeTheme({ ...match.theme, ...theme, businessName: theme.businessName || match.theme.businessName });
-  return serializeUser(match);
+  const currentTheme = normalizeTheme({
+    businessName: match.businessName || defaultThemes.green.businessName,
+    primary: match.themePrimary || defaultThemes.green.primary,
+    secondary: match.themeSecondary || defaultThemes.green.secondary,
+    accent: match.themeAccent || defaultThemes.green.accent,
+    background: match.themeBackground || defaultThemes.green.background,
+    sidebar: match.themeSidebar || defaultThemes.green.sidebar,
+    text: match.themeText || defaultThemes.green.text,
+    card: match.themeCard || defaultThemes.green.card,
+  });
+
+  const nextTheme = normalizeTheme({ ...currentTheme, ...theme, businessName: theme.businessName || currentTheme.businessName });
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      businessName: nextTheme.businessName,
+      themePrimary: nextTheme.primary,
+      themeSecondary: nextTheme.secondary,
+      themeAccent: nextTheme.accent,
+      themeBackground: nextTheme.background,
+      themeSidebar: nextTheme.sidebar,
+      themeText: nextTheme.text,
+      themeCard: nextTheme.card,
+    },
+  });
+
+  return toUserProfile(updated);
 }
 
-export function updateUserProfile(userId: string, payload: {
+export async function updateUserProfile(userId: string, payload: {
   username?: string;
   displayName?: string;
   password?: string;
   role?: "admin" | "client";
   theme?: Partial<ThemeConfig>;
 }) {
-  const store = ensureStore();
-  const match = store.__caixaflow_users!.find((entry) => entry.id === userId);
+  const match = await prisma.user.findUnique({ where: { id: userId } });
   if (!match) return null;
 
-  if (payload.username) {
-    const nextUsername = payload.username.trim();
-    if (!nextUsername) {
-      throw new Error("Usuário não pode ficar vazio.");
-    }
-    const isTaken = store.__caixaflow_users!.some((entry) => entry.id !== userId && entry.username.toLowerCase() === nextUsername.toLowerCase());
+  const nextUsername = payload.username?.trim();
+  if (nextUsername !== undefined && !nextUsername) {
+    throw new Error("Usuário não pode ficar vazio.");
+  }
+
+  if (nextUsername) {
+    const isTaken = await prisma.user.findFirst({
+      where: { username: { equals: nextUsername, mode: "insensitive" }, id: { not: userId } },
+    });
     if (isTaken) {
       throw new Error("Este usuário já existe.");
     }
-    match.username = nextUsername;
   }
 
-  if (payload.displayName) match.displayName = payload.displayName.trim() || match.displayName;
-  if (payload.role) match.role = payload.role;
-  if (payload.password && payload.password.trim()) match.passwordHash = bcrypt.hashSync(payload.password.trim(), 10);
-  if (payload.theme) match.theme = normalizeTheme({ ...match.theme, ...payload.theme });
+  const currentTheme = normalizeTheme({
+    businessName: match.businessName || defaultThemes.green.businessName,
+    primary: match.themePrimary || defaultThemes.green.primary,
+    secondary: match.themeSecondary || defaultThemes.green.secondary,
+    accent: match.themeAccent || defaultThemes.green.accent,
+    background: match.themeBackground || defaultThemes.green.background,
+    sidebar: match.themeSidebar || defaultThemes.green.sidebar,
+    text: match.themeText || defaultThemes.green.text,
+    card: match.themeCard || defaultThemes.green.card,
+  });
 
-  return serializeUser(match);
+  const nextTheme = payload.theme ? normalizeTheme({ ...currentTheme, ...payload.theme }) : currentTheme;
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      username: nextUsername ?? match.username,
+      displayName: payload.displayName ? payload.displayName.trim() || match.displayName : match.displayName,
+      role: payload.role ?? match.role,
+      passwordHash: payload.password && payload.password.trim() ? await bcrypt.hash(payload.password.trim(), 10) : match.passwordHash,
+      businessName: nextTheme.businessName,
+      themePrimary: nextTheme.primary,
+      themeSecondary: nextTheme.secondary,
+      themeAccent: nextTheme.accent,
+      themeBackground: nextTheme.background,
+      themeSidebar: nextTheme.sidebar,
+      themeText: nextTheme.text,
+      themeCard: nextTheme.card,
+    },
+  });
+
+  return toUserProfile(updated);
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createUser, listUsers } from "@/lib/auth-store";
 
 export async function GET() {
-  return NextResponse.json({ users: listUsers() });
+  return NextResponse.json({ users: await listUsers() });
 }
 
 export async function POST(request: Request) {

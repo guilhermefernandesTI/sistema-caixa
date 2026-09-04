@@ -2,9 +2,9 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { deleteUserById, getSessionUser, getUserById, updateUserProfile } from "@/lib/auth-store";
 
-function getCurrentAdmin() {
+async function getCurrentAdmin() {
   const token = cookies().get("caixaflow_session")?.value;
-  const user = token ? getSessionUser(token) : null;
+  const user = token ? await getSessionUser(token) : null;
   if (!user || user.role !== "admin") {
     return null;
   }
@@ -12,7 +12,7 @@ function getCurrentAdmin() {
 }
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
-  const user = getUserById(params.id);
+  const user = await getUserById(params.id);
   if (!user) {
     return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
   }
@@ -22,12 +22,12 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
-    if (!getCurrentAdmin()) {
+    if (!(await getCurrentAdmin())) {
       return NextResponse.json({ error: "Apenas o administrador pode alterar cadastros e personalização." }, { status: 403 });
     }
 
     const body = await request.json().catch(() => ({}));
-    const updated = updateUserProfile(params.id, body);
+    const updated = await updateUserProfile(params.id, body);
 
     if (!updated) {
       return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
@@ -41,11 +41,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   try {
-    if (!getCurrentAdmin()) {
+    if (!(await getCurrentAdmin())) {
       return NextResponse.json({ error: "Apenas o administrador pode excluir estabelecimentos." }, { status: 403 });
     }
 
-    const deleted = deleteUserById(params.id);
+    const deleted = await deleteUserById(params.id);
     if (!deleted) {
       return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
     }

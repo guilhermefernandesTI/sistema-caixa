@@ -12,13 +12,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Usuário e senha são obrigatórios." }, { status: 400 });
   }
 
-  const user = validatePassword(username, password);
+  const user = await validatePassword(username, password);
   if (!user) {
     return NextResponse.json({ error: "Usuário ou senha inválidos." }, { status: 401 });
   }
 
   const token = crypto.randomUUID();
-  createSession(token, user.id!);
+  await createSession(token, user.id!);
 
   cookies().set("caixaflow_session", token, {
     httpOnly: true,

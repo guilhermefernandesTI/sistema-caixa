@@ -4,7 +4,7 @@ import { destroySession } from "@/lib/auth-store";
 
 export async function POST() {
   const token = cookies().get("caixaflow_session")?.value;
-  if (token) destroySession(token);
+  if (token) await destroySession(token);
 
   const response = NextResponse.json({ success: true });
   response.cookies.set("caixaflow_session", "", {

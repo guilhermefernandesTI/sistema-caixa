@@ -1,29 +1,33 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
+} 
 
 generator client {
   provider = "prisma-client-js"
 }
 
 model User {
-  id              String    @id @default(cuid())
-  username        String    @unique
+  id              String        @id @default(cuid())
+  tenantId        String        @default(cuid())
+  username        String        @unique
   passwordHash    String
   displayName     String
-  role            String    @default("client")
-  businessName    String    @default("GF Venda Fácil")
-  themePrimary    String    @default("#15231f")
-  themeSecondary  String    @default("#d9f99d")
-  themeAccent     String    @default("#42c98b")
-  themeBackground String    @default("#f7f8f3")
-  themeSidebar    String    @default("#15231f")
-  themeText       String    @default("#17211d")
-  themeCard       String    @default("#ffffff")
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  role            String        @default("client")
+  businessName    String        @default("GF Venda Fácil")
+  themePrimary    String        @default("#15231f")
+  themeSecondary  String        @default("#d9f99d")
+  themeAccent     String        @default("#42c98b")
+  themeBackground String        @default("#f7f8f3")
+  themeSidebar    String        @default("#15231f")
+  themeText       String        @default("#17211d")
+  themeCard       String        @default("#ffffff")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   sessions        Session[]
+  products        Product[]
+  cashSessions    CashSession[]
+  sales           Sale[]
 }
 
 model Session {
@@ -36,32 +40,41 @@ model Session {
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  sku         String   @unique
+  id          String     @id @default(cuid())
+  tenantId    String
+  sku         String     @unique
   name        String
   category    String
-  price       Decimal  @db.Decimal(10, 2)
-  stock       Int      @default(0)
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  price       Decimal
+  stock       Int        @default(0)
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  ownerId     String?
+  owner       User?      @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   saleItems   SaleItem[]
 }
 
 model CashSession {
   id            String    @id @default(cuid())
+  tenantId      String
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   openedAt      DateTime  @default(now())
   closedAt      DateTime?
-  openingAmount Decimal   @db.Decimal(10, 2)
-  closingAmount Decimal?  @db.Decimal(10, 2)
+  openingAmount Decimal
+  closingAmount Decimal?
   status        String    @default("OPEN")
   sales         Sale[]
 }
 
 model Sale {
   id            String         @id @default(cuid())
+  tenantId      String
+  userId        String?
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt     DateTime       @default(now())
-  total         Decimal        @db.Decimal(10, 2)
+  total         Decimal
   paymentMethod String
   cashSessionId String?
   cashSession   CashSession?   @relation(fields: [cashSessionId], references: [id])
@@ -70,8 +83,9 @@ model Sale {
 
 model SaleItem {
   id        String  @id @default(cuid())
+  tenantId  String
   quantity  Int
-  unitPrice Decimal @db.Decimal(10, 2)
+  unitPrice Decimal
   saleId    String
   productId String
   sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
