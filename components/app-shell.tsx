@@ -64,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-[var(--brand-sidebar)] px-5 py-6 text-white transition-transform ${open ? "translate-x-0" : "-translate-x-full" } lg:translate-x-0`}>
         <div className="flex items-center justify-between px-2">
           <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--brand-accent)] text-[var(--brand-sidebar)] font-black">cf</span>
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--brand-accent)] text-[var(--brand-sidebar)] font-black">GF</span>
             <span className="text-lg font-bold tracking-tight">
               <span>{brandMain}</span>
               {brandSecondary ? <span className="ml-1 text-[var(--brand-secondary)]">{brandSecondary}</span> : null}
