@@ -23,6 +23,21 @@ export default function SettingsPage() {
     }
   }, [user]);
 
+  if (user?.role !== "admin") {
+    return (
+      <>
+        <PageTitle
+          eyebrow="Acesso"
+          title="Personalização restrita"
+          description="A identidade visual de cada estabelecimento é administrada somente pelo perfil de administrador."
+        />
+        <div className="rounded-2xl border border-[#e4e8df] bg-white p-6 text-sm text-[#4b5652] shadow-soft">
+          Clientes não têm permissão para alterar o branding do sistema.
+        </div>
+      </>
+    );
+  }
+
   const handleChange = (key: keyof ThemeConfig, value: string) => {
     setTheme((current) => ({ ...current, [key]: value }));
   };

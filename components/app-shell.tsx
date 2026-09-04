@@ -46,7 +46,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const businessName = user.theme.businessName || "caixa flow";
-  const visibleNav = user.role === "admin" ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }] : nav;
+  const businessNameParts = businessName.trim().split(/\s+/).filter(Boolean);
+  const brandMain = businessNameParts[0] || "caixa";
+  const brandSecondary = businessNameParts.length > 1 ? businessNameParts.slice(1).join(" ") : "";
+  const visibleNav = user.role === "admin"
+    ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }]
+    : nav.filter((item) => item.href !== "/settings");
+
+  useEffect(() => {
+    if (pathname === "/settings" && user && user.role !== "admin") {
+      router.replace("/");
+    }
+  }, [pathname, router, user]);
 
   return (
     <div className="min-h-screen bg-[var(--brand-bg)] text-[var(--brand-text)]">
@@ -54,7 +65,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between px-2">
           <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--brand-accent)] text-[var(--brand-sidebar)] font-black">cf</span>
-            <span className="text-lg font-bold tracking-tight">{businessName.split(" ")[0]}<span className="text-[var(--brand-secondary)]">{businessName.includes(" ") ? businessName.split(" ").slice(1).join(" ") : "flow"}</span></span>
+            <span className="text-lg font-bold tracking-tight">
+              <span>{brandMain}</span>
+              {brandSecondary ? <span className="ml-1 text-[var(--brand-secondary)]">{brandSecondary}</span> : null}
+            </span>
           </Link>
           <button className="rounded-lg p-1 text-white/60 lg:hidden" onClick={() => setOpen(false)} aria-label="Fechar menu"><X size={18} /></button>
         </div>

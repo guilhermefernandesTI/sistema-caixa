@@ -10,6 +10,10 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
   }
 
+  if (user.role !== "admin") {
+    return NextResponse.json({ error: "A personalização do estabelecimento só pode ser alterada pelo administrador." }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => ({}));
   const updated = updateUserTheme(user.id!, body);
   if (!updated) {
