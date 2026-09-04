@@ -21,7 +21,7 @@ export type UserProfile = {
 
 export const defaultThemes: Record<string, ThemeConfig> = {
   green: {
-    businessName: "caixa flow",
+    businessName: "GF Venda Fácil",
     primary: "#15231f",
     secondary: "#d9f99d",
     accent: "#42c98b",

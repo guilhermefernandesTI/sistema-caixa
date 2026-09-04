@@ -43,7 +43,7 @@ export default function LoginPage() {
               <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--brand-accent)] text-lg font-black text-[var(--brand-sidebar)]">cf</span>
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-white/50">Sistema de caixa</p>
-                <h1 className="text-2xl font-black">caixa flow</h1>
+                <h1 className="text-2xl font-black">GF Venda Fácil</h1>
               </div>
             </div>
           </div>

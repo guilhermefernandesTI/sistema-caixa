@@ -78,7 +78,7 @@ export default function AdminPage() {
   const handleSaveTheme = async () => {
     if (!selectedUser?.id) return;
 
-    const nextTheme = { ...theme, businessName: theme.businessName.trim() || selectedUser.displayName || "caixa flow" };
+    const nextTheme = { ...theme, businessName: theme.businessName.trim() || selectedUser.displayName || "GF Venda Fácil" };
     setTheme(nextTheme);
 
     const response = await fetch(`/api/users/${selectedUser.id}`, {

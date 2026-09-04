@@ -1,4 +1,4 @@
-# caixa flow
+# GF Venda Fácil
 
 MVP de frente de caixa (PDV) para pequenos negócios, construído com Next.js App Router, TypeScript, Tailwind CSS e Prisma/PostgreSQL. A interface é responsiva e já inclui dashboard, catálogo, carrinho de vendas e abertura/fechamento de caixa.
 

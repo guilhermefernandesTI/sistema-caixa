@@ -13,7 +13,7 @@ model User {
   passwordHash    String
   displayName     String
   role            String    @default("client")
-  businessName    String    @default("caixa flow")
+  businessName    String    @default("GF Venda Fácil")
   themePrimary    String    @default("#15231f")
   themeSecondary  String    @default("#d9f99d")
   themeAccent     String    @default("#42c98b")

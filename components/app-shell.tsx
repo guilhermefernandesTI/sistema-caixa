@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen grid place-items-center bg-[#f7f8f3] text-ink">Sessão expirada. Redirecionando para login...</div>;
   }
 
-  const businessName = user.theme.businessName || "caixa flow";
+  const businessName = user.theme.businessName || "GF Venda Fácil";
   const businessNameParts = businessName.trim().split(/\s+/).filter(Boolean);
   const brandMain = businessNameParts[0] || "caixa";
   const brandSecondary = businessNameParts.length > 1 ? businessNameParts.slice(1).join(" ") : "";
