@@ -40,7 +40,7 @@ export default function LoginPage() {
         <div className="hidden w-1/2 bg-[var(--brand-sidebar)] p-8 text-white lg:flex lg:flex-col lg:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--brand-accent)] text-lg font-black text-[var(--brand-sidebar)]">cf</span>
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--brand-accent)] text-lg font-black text-[var(--brand-sidebar)]">GF</span>
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-white/50">Sistema de caixa</p>
                 <h1 className="text-2xl font-black">GF Venda Fácil</h1>
