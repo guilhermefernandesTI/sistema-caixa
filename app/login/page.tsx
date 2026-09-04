@@ -8,8 +8,8 @@ import { useAuth } from "@/components/auth-provider";
 export default function LoginPage() {
   const router = useRouter();
   const { signIn, user, isReady } = useAuth();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("920025");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -54,12 +54,6 @@ export default function LoginPage() {
             <p className="mt-4 max-w-md text-sm text-white/70">Faça login com as credenciais do cliente ou do administrador para visualizar a marca, as cores e o ambiente personalizados.</p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-            <p className="font-semibold text-white">Credenciais de demonstração</p>
-            <p className="mt-2">admin / 920025</p>
-            <p className="mt-1">julia / 123456</p>
-            <p className="mt-1">rosa / 123456</p>
-          </div>
         </div>
 
         <div className="flex w-full items-center justify-center bg-[var(--brand-bg)] p-6 lg:w-1/2 lg:p-10">
@@ -73,7 +67,7 @@ export default function LoginPage() {
                 Usuário
                 <div className="mt-2 flex items-center gap-3 rounded-2xl border border-[#e4e8df] bg-[#f8faf7] px-3 py-3">
                   <UserRound size={17} className="text-[var(--brand-accent)]" />
-                  <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="admin" className="w-full bg-transparent text-sm outline-none" />
+                  <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Digite seu usuário" className="w-full bg-transparent text-sm outline-none" />
                 </div>
               </label>
 
@@ -81,7 +75,7 @@ export default function LoginPage() {
                 Senha
                 <div className="mt-2 flex items-center gap-3 rounded-2xl border border-[#e4e8df] bg-[#f8faf7] px-3 py-3">
                   <LockKeyhole size={17} className="text-[var(--brand-accent)]" />
-                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="********" className="w-full bg-transparent text-sm outline-none" />
+                  <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Digite sua senha" className="w-full bg-transparent text-sm outline-none" />
                   <button type="button" onClick={() => setShowPassword((value) => !value)} className="text-[var(--brand-accent)]">
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
