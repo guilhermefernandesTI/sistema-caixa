@@ -3,6 +3,8 @@
         "Set-Content": true,
         "npm install": true,
         "npm run build": true,
-        "npm run dev": true
+        "npm run dev": true,
+        "New-Item": true,
+        "Out-Null": true
     }
 }
