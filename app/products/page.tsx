@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Archive, ChevronDown, Edit3, Plus, Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { PageTitle } from "@/components/app-shell";
 import { formatCurrency, products as initialProducts, type Product } from "@/lib/data";
 
 const defaultCategories = ["Bebidas", "Lanches", "Doces"];
+const categoriesStorageKey = "caixa-flow-product-categories";
 
 const normalizeCategoryName = (value: string) => value.trim().replace(/\s+/g, " ");
 
@@ -16,10 +17,12 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
   const categories = useMemo(() => {
-    const uniqueCategories = Array.from(new Set([...defaultCategories, ...inventory.map((product) => product.category)]));
+    const uniqueCategories = Array.from(new Set([...defaultCategories, ...customCategories, ...inventory.map((product) => product.category)]));
     return ["Todas", ...uniqueCategories];
-  }, [inventory]);
+  }, [customCategories, inventory]);
   const [draft, setDraft] = useState({
     name: "",
     category: defaultCategories[0],
@@ -36,6 +39,30 @@ export default function ProductsPage() {
       ),
     [inventory, query, category],
   );
+
+  useEffect(() => {
+    try {
+      const savedCategories = JSON.parse(window.localStorage.getItem(categoriesStorageKey) ?? "[]");
+      if (Array.isArray(savedCategories)) {
+        setCustomCategories(
+          savedCategories
+            .filter((item): item is string => typeof item === "string")
+            .map(normalizeCategoryName)
+            .filter(Boolean),
+        );
+      }
+    } catch {
+      // Uma lista inválida no armazenamento não deve impedir o uso do cadastro.
+    } finally {
+      setCategoriesLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (categoriesLoaded) {
+      window.localStorage.setItem(categoriesStorageKey, JSON.stringify(customCategories));
+    }
+  }, [categoriesLoaded, customCategories]);
 
   const openCreateForm = () => {
     setEditingId(null);
@@ -65,8 +92,40 @@ export default function ProductsPage() {
     const nextCategory = normalizeCategoryName(newCategoryName);
     if (!nextCategory) return;
 
+    const alreadyExists = categories.some((option) => option !== "Todas" && option.toLowerCase() === nextCategory.toLowerCase());
+    if (alreadyExists) {
+      setDraft((current) => ({ ...current, category: nextCategory }));
+      setNewCategoryName("");
+      return;
+    }
+
+    setCustomCategories((current) => [...current, nextCategory]);
     setNewCategoryName("");
     setDraft((current) => ({ ...current, category: nextCategory }));
+  };
+
+  const handleDeleteCategory = (categoryName: string) => {
+    const nextCategory = normalizeCategoryName(categoryName);
+    if (!nextCategory || nextCategory === "Todas") return;
+
+    const boundProducts = inventory.filter((product) => product.category === nextCategory);
+    const fallbackCategory = defaultCategories.find((option) => option !== nextCategory) ?? "Outros";
+
+    if (boundProducts.length > 0) {
+      const confirmed = window.confirm(
+        `A categoria "${nextCategory}" está vinculada a ${boundProducts.length} produto(s). Deseja mover esses itens para "${fallbackCategory}"?`,
+      );
+      if (!confirmed) return;
+
+      setInventory((current) =>
+        current.map((product) => (product.category === nextCategory ? { ...product, category: fallbackCategory } : product)),
+      );
+    }
+
+    setCategory((current) => (current === nextCategory ? "Todas" : current));
+    setDraft((current) => ({ ...current, category: current.category === nextCategory ? fallbackCategory : current.category }));
+    setCustomCategories((current) => current.filter((item) => item !== nextCategory));
+    setNewCategoryName("");
   };
 
   const handleSaveProduct = () => {
@@ -327,6 +386,31 @@ export default function ProductsPage() {
                       </button>
                     </div>
                   </label>
+
+                  {categories.filter((option) => option !== "Todas").length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {categories
+                        .filter((option) => option !== "Todas")
+                        .map((option) => (
+                          <span
+                            key={option}
+                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600"
+                          >
+                            {option}
+                            {!defaultCategories.includes(option) && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(option)}
+                                className="rounded-full bg-slate-100 p-0.5 text-slate-500 hover:bg-red-50 hover:text-red-600"
+                                aria-label={`Excluir categoria ${option}`}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </span>
+                        ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
